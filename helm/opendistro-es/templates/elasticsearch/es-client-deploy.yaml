@@ -66,7 +66,10 @@ spec:
         - vm.max_map_count={{ .Values.elasticsearch.maxMapCount }}
         securityContext:
           privileged: true
+<<<<<<< HEAD
 {{- end }}
+=======
+>>>>>>> Allow extra volumes, volumeMounts, and initContainers
 {{- if .Values.elasticsearch.extraInitContainers }}
 {{ toYaml .Values.elasticsearch.extraInitContainers| indent 6 }}
 {{- end }}
