@@ -12,7 +12,7 @@
 # permissions and limitations under the License.
 
 certmanager:
-  enabled: false
+  enabled: true
 
   ca:
     commonName: example.com
@@ -23,7 +23,9 @@ certmanager:
   elasticsearch:
     transport:
       enabled: true
-      commonName: example.com
+      commonName: nodes.elastic-system.svc.cluster.local
+      organization:
+      - Elastisys
       duration: 21600h
       renewBefore: 360h
       keySize: 2048
@@ -32,7 +34,9 @@ certmanager:
       - client auth
     admin:
       enabled: true
-      commonName: example.com
+      commonName: admin.elastic-system.svc.cluster.local
+      organization:
+      - Elastisys
       duration: 21600h
       renewBefore: 360h
       keySize: 2048
@@ -58,11 +62,11 @@ kibana:
   livenessProbe: []
 
   elasticsearchAccount:
-    useExistingSecret: true
-    username:
-    password:
+    useExistingSecret: false
+    username: kibana
+    password: kibana
     cookie:
-    secret: ""
+    secret: "elasticsearchsecret"
     keyPassphrase:
       enabled: false
 
@@ -106,7 +110,23 @@ kibana:
     type: ClusterIP
     annotations: {}
 
-  config: {}
+  config:
+    elasticsearch.hosts: http://opendistro-es-client-service:9200
+    elasticsearch.password: ${ELASTICSEARCH_PASSWORD}
+    elasticsearch.username: ${ELASTICSEARCH_USERNAME}
+    opendistro_security.cookie.password: ${COOKIE_PASS}
+    opendistro_security.cookie.secure: false
+    elasticsearch.requestHeadersWhitelist:
+    - securitytenant
+    - Authorization
+    - security_tenant
+    elasticsearch.ssl.verificationMode: none
+    opendistro_security.allow_client_certificates: true
+    opendistro_security.multitenancy.enabled: true
+    opendistro_security.multitenancy.tenants.enable_global: true
+    opendistro_security.multitenancy.tenants.enable_private: true
+    opendistro_security.readonly_mode.roles:
+    - kibana_read_only
     ## Default Kibana configuration from kibana-docker.
     # server.name: kibana
     # server.host: "0"
@@ -167,7 +187,160 @@ elasticsearch:
   securityConfig:
     enabled: true
     path: "/usr/share/elasticsearch/plugins/opendistro_security/securityconfig"
-    config: {}
+    config:
+      config.yml: |-
+        _meta:
+          type: "config"
+          config_version: 2
+        config:
+          dynamic:
+            kibana:
+              multitenancy_enabled: true
+              server_username: kibana
+
+            authc:
+              basic_internal_auth_domain:
+                description: "Authenticate via HTTP Basic against internal users database"
+                http_enabled: true
+                transport_enabled: true
+                order: 0
+                http_authenticator:
+                  type: basic
+                  challenge: false
+                authentication_backend:
+                  type: internal
+
+      #Define users, roles, mappings and tenants below
+      internal_users.yml: |-
+        _meta:
+          type: "internalusers"
+          config_version: 2
+        ## Demo users
+
+        admin:
+          hash: "$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG"
+          reserved: true
+          backend_roles:
+          - "admin"
+          description: "Demo admin user"
+
+        #define user for  for the Kibana server
+        kibana:
+          hash: "$2y$12$efAwiXyV.uRLnYy9c0Kdju4hrr8fso2cKC7ObkHTrTk4jGXHlzmzi"
+          reserved: true
+          description: "kibana server user"
+
+        #define user for fluentd
+        fluentd:
+          hash: "$2a$12$u1ShR4l4uBS3Uv59Pa2y5.1uQuZBrZtmNfqB3iM/.jL0XoV9sghS2"
+          reserved: true
+          description: "fluentd user"
+
+        #define user for snapshots
+        snapshot:
+          hash: "$2y$12$HARtGIKFsoVT8ypHHA6QwOx6XPoP.En/ReIjLGI90rVqLHf2Lcmhe"
+          reserved: true
+          description: "manage_snapshot user"
+
+        #define user for ilm
+        ilm:
+          hash: "$2y$12$SHMJ3.DOHJFCVi6wOrLfh.gXcYAgh4dBtRitA0d/Txd2Z3tbSiGoy"
+          reserved: true
+          description: "ilm user"
+
+      roles.yml: |-
+        _meta:
+          type: "roles"
+          config_version: 2
+
+        #roles for fluentd user
+        fluentd:
+          reserved: true
+          cluster_permissions:
+          - "cluster_composite_ops"
+          - "cluster_monitor"
+          - "cluster:admin/ingest/pipe/get"
+          - "cluster:admin/ingest/pipeline/put"
+          - "indices:admin/template/get"
+          - "indices:admin/template/put"
+          index_permissions:
+          - index_patterns:
+            - "kubernetes*"
+            allowed_actions:
+            - "crud"
+            - "create_index"
+          - index_patterns:
+            - "kubeaudit*"
+            allowed_actions:
+            - "crud"
+            - "create_index"
+          - index_patterns:
+            - "other*"
+            allowed_actions:
+            - "crud"
+            - "create_index"
+
+        #roles for ilm user
+        manage_ilm:
+          reserved: true
+          cluster_permissions:
+          - "ODS_CLUSTER_MANAGE_ILM"
+          index_permissions:
+          - index_patterns:
+            - "*"
+            allowed_actions:
+            - READ
+
+      roles_mapping.yml: |-
+        _meta:
+          type: "rolesmapping"
+          config_version: 2
+
+        # user-roles mapping
+        all_access:
+          reserved: false
+          backend_roles:
+          - "admin"
+          description: "Maps admin to all_access"
+
+        kibana_server:
+          reserved: true
+          users:
+          - "kibana"
+          description: "Maps kibana user with the static  kinana_server role"
+
+        fluentd:
+          reserved: true
+          users:
+          - "fluentd"
+          description: "Maps fluentd user to fluentd role"
+
+        manage_snapshots:
+          reserved: false
+          users:
+          - "snapshot"
+          description: "Maps snapshot user to the static manage_snapshots role"
+
+        manage_ilm:
+          reserved: false
+          users:
+          - "ilm"
+          description: "Maps ilm user to manage_ilm role"
+
+      tenants.yml: |-
+        _meta:
+          type: "tenants"
+          config_version: 2
+
+      action_groups.yml: |-
+        _meta:
+          type: "actiongroups"
+          config_version: 2
+
+      nodes_dn.yml: |-
+        _meta:
+          type: "nodesdn"
+          config_version: 2
       # config.yml: |-
       # internal_users.yml: |-
       # roles.yml: |-
@@ -211,10 +384,10 @@ elasticsearch:
   ssl:
     ## TLS is mandatory for the transport layer and can not be disabled
     transport:
-      existingCertSecret:
-      existingCertSecretCertSubPath: elk-transport-crt.pem
-      existingCertSecretKeySubPath: elk-transport-key.pem
-      existingCertSecretRootCASubPath: elk-transport-root-ca.pem
+      existingCertSecret: opendistro-es-transport
+      existingCertSecretCertSubPath: tls.crt
+      existingCertSecretKeySubPath: tls.key
+      existingCertSecretRootCASubPath: ca.crt
     rest:
       enabled: false
       existingCertSecret:
@@ -222,11 +395,11 @@ elasticsearch:
       existingCertSecretKeySubPath: elk-rest-key.pem
       existingCertSecretRootCASubPath: elk-rest-root-ca.pem
     admin:
-      enabled: false
-      existingCertSecret:
-      existingCertSecretCertSubPath: admin-crt.pem
-      existingCertSecretKeySubPath: admin-key.pem
-      existingCertSecretRootCASubPath: admin-root-ca.pem
+      enabled: true
+      existingCertSecret: opendistro-es-admin
+      existingCertSecretCertSubPath: tls.crt
+      existingCertSecretKeySubPath: tls.key
+      existingCertSecretRootCASubPath: ca.crt
 
   master:
     enabled: true
@@ -421,7 +594,24 @@ elasticsearch:
     #              role: client
     podAnnotations: {}
 
-  config: {}
+  config:
+    opendistro_security.restapi.roles_enabled: ["all_access", "security_rest_api_access"]
+    opendistro_security.allow_unsafe_democertificates: false
+    opendistro_security.allow_default_init_securityindex: false
+    opendistro_security.audit.type: internal_elasticsearch
+    opendistro_security.enable_snapshot_restore_privilege: true
+    opendistro_security.check_snapshot_restore_write_privileges: true
+    cluster.routing.allocation.disk.threshold_enabled: false
+    opendistro_security.audit.config.disabled_rest_categories: NONE
+    opendistro_security.audit.config.disabled_transport_categories: NONE
+    opendistro_security.authcz.admin_dn:
+    - 'CN=admin.elastic-system.svc.cluster.local,O=Elastisys'
+    opendistro_security.nodes_dn:
+    - 'CN=nodes.elastic-system.svc.cluster.local,O=Elastisys'
+    opendistro_security.ssl.transport.pemcert_filepath: elk-transport-crt.pem
+    opendistro_security.ssl.transport.pemkey_filepath: elk-transport-key.pem
+    opendistro_security.ssl.transport.pemtrustedcas_filepath: elk-transport-root-ca.pem
+    opendistro_security.ssl.transport.enforce_hostname_verification: false
     ## Example Config
     # opendistro_security.allow_unsafe_democertificates: false
     # opendistro_security.allow_default_init_securityindex: true
