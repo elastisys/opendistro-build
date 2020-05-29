@@ -12,6 +12,15 @@ certmanager:
       - Elastisys
 
 elasticsearch:
+  defaultuserpasswords:
+    secret: defaultuserpasswords
+    admin_pwd: "$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG"
+    kibana_pwd: "$2y$12$efAwiXyV.uRLnYy9c0Kdju4hrr8fso2cKC7ObkHTrTk4jGXHlzmzi"
+  extraInitContainers:
+  - name: replace-envs
+    image: supinf/envsubst # https://www.gnu.org/software/gettext/manual/html_node/envsubst-Invocation.html
+    command: ['sh','-c', 'envsubst  < /user/share/elasticsearch/plugins/opendistro_security/securityconfig/internal_users.yml > /tmp/internal_users.yml']
+    command: ['sh','-c', 'envsubst  < /tmp/internal_users.yml > /user/share/elasticsearch/plugins/opendistro_security/securityconfig/internal_users.yml']
   ssl:
     transport:
       existingCertSecret: opendistro-es-transport
@@ -78,7 +87,7 @@ elasticsearch:
 
         #define admin user
         admin:
-          hash: "$2a$12$VcCDgh2NDk07JGN0rjGbM.Ad41qVR/YFJcgHp0UGns5JDymv..TOG"
+          hash: ${ES_ADMIN_PWD}
           reserved: true
           backend_roles:
           - "admin"
@@ -86,7 +95,7 @@ elasticsearch:
 
         #define user for  for the Kibana server
         kibana:
-          hash: "$2y$12$efAwiXyV.uRLnYy9c0Kdju4hrr8fso2cKC7ObkHTrTk4jGXHlzmzi"
+          hash: ${ES_KIBANA_PWD}
           reserved: true
           description: "kibana server user"
 
