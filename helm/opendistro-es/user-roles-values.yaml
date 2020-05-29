@@ -90,66 +90,14 @@ elasticsearch:
           reserved: true
           description: "kibana server user"
 
-        #define user for fluentd
-        fluentd:
-          hash: "$2a$12$u1ShR4l4uBS3Uv59Pa2y5.1uQuZBrZtmNfqB3iM/.jL0XoV9sghS2"
-          reserved: true
-          description: "fluentd user"
 
-        #define user for snapshots
-        snapshot:
-          hash: "$2y$12$HARtGIKFsoVT8ypHHA6QwOx6XPoP.En/ReIjLGI90rVqLHf2Lcmhe"
-          reserved: true
-          description: "manage_snapshot user"
-
-        #define user for ilm
-        ilm:
-          hash: "$2y$12$SHMJ3.DOHJFCVi6wOrLfh.gXcYAgh4dBtRitA0d/Txd2Z3tbSiGoy"
-          reserved: true
-          description: "ilm user"
 
       roles.yml: |-
         _meta:
           type: "roles"
           config_version: 2
 
-        #roles for fluentd user
-        fluentd:
-          reserved: true
-          cluster_permissions:
-          - "cluster_composite_ops"
-          - "cluster_monitor"
-          - "cluster:admin/ingest/pipe/get"
-          - "cluster:admin/ingest/pipeline/put"
-          - "indices:admin/template/get"
-          - "indices:admin/template/put"
-          index_permissions:
-          - index_patterns:
-            - "kubernetes*"
-            allowed_actions:
-            - "crud"
-            - "create_index"
-          - index_patterns:
-            - "kubeaudit*"
-            allowed_actions:
-            - "crud"
-            - "create_index"
-          - index_patterns:
-            - "other*"
-            allowed_actions:
-            - "crud"
-            - "create_index"
 
-        #roles for ilm user
-        manage_ilm:
-          reserved: true
-          cluster_permissions:
-          - "ODS_CLUSTER_MANAGE_ILM"
-          index_permissions:
-          - index_patterns:
-            - "*"
-            allowed_actions:
-           - "cluster:admin/ilm/*"
 
       roles_mapping.yml: |-
         _meta:
@@ -169,23 +117,7 @@ elasticsearch:
           - "kibana"
           description: "Maps kibana user with the static  kinana_server role"
 
-        fluentd:
-          reserved: true
-          users:
-          - "fluentd"
-          description: "Maps fluentd user to fluentd role"
 
-        manage_snapshots:
-          reserved: true
-          users:
-          - "snapshot"
-          description: "Maps snapshot user to the static manage_snapshots role"
-
-        manage_ilm:
-          reserved: true
-          users:
-          - "ilm"
-          description: "Maps ilm user to manage_ilm role"
 
       tenants.yml: |-
         _meta:
