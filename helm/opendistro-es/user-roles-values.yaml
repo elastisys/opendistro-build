@@ -1,15 +1,3 @@
-certmanager:
-  enabled: true
-  elasticsearch:
-    transport:
-      commonName: nodes.elastic-system.svc.cluster.local
-      organization:
-      - Elastisys
-    admin:
-      enabled: true
-      commonName: admin.elastic-system.svc.cluster.local
-      organization:
-      - Elastisys
 
 elasticsearch:
   defaultuserpasswords:
@@ -18,7 +6,7 @@ elasticsearch:
     kibana_pwd: "$2y$12$efAwiXyV.uRLnYy9c0Kdju4hrr8fso2cKC7ObkHTrTk4jGXHlzmzi"
   extraInitContainers:
   - name: replace-envs
-    image: supinf/envsubst # https://www.gnu.org/software/gettext/manual/html_node/envsubst-Invocation.html
+    image: busybox #supinf/envsubst # https://www.gnu.org/software/gettext/manual/html_node/envsubst-Invocation.html
     command: ['sh','-c', 'envsubst  < /user/share/elasticsearch/plugins/opendistro_security/securityconfig/internal_users.yml > /tmp/internal_users.yml']
     command: ['sh','-c', 'envsubst  < /tmp/internal_users.yml > /user/share/elasticsearch/plugins/opendistro_security/securityconfig/internal_users.yml']
   ssl:
