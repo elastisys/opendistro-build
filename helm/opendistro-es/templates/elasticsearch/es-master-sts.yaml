@@ -122,6 +122,18 @@ spec:
               resource: limits.cpu
         - name: ES_JAVA_OPTS
           value: {{ .Values.elasticsearch.master.javaOpts }}
+    {{- if .Values.elasticsearch.defaultuserpasswords.secret }}
+        - name: ES_ADMIN_PWD
+          valueFrom:
+             secretKeyRef:
+               name: {{ .Values.elasticsearch.defaultuserpasswords.secret }}
+               key: admin_pwd
+        - name: ES_KIBANA_PWD
+          valueFrom:
+             secretKeyRef:
+               name: {{ .Values.elasticsearch.defaultuserpasswords.secret }}
+               key: kibana_pwd
+    {{- end }}
 {{- if .Values.elasticsearch.extraEnvs }}
 {{ toYaml .Values.elasticsearch.extraEnvs | indent 8 }}
 {{- end }}
@@ -197,7 +209,7 @@ spec:
         {{- end }}
         {{- if .Values.elasticsearch.securityConfig.enabled }}
         {{- if .Values.elasticsearch.securityConfig.config }}
-        - mountPath: {{ .Values.elasticsearch.securityConfig.path }} 
+        - mountPath: {{ .Values.elasticsearch.securityConfig.path }}
           name: security-config
         {{- end }}
 {{- if .Values.elasticsearch.extraVolumeMounts }}
