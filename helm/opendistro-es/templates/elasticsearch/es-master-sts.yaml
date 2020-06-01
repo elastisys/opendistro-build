@@ -209,6 +209,8 @@ spec:
         {{- end }}
         {{- if .Values.elasticsearch.securityConfig.enabled }}
         {{- if .Values.elasticsearch.securityConfig.config }}
+        - mountPath: /copy
+          name: copy
         - mountPath: {{ .Values.elasticsearch.securityConfig.path }}
           name: security-config
         {{- end }}
@@ -216,6 +218,12 @@ spec:
 {{ toYaml .Values.elasticsearch.extraVolumeMounts | indent 8 }}
 {{- end }}
       {{- end }}
+        lifecycle:
+            postStart:
+              exec:
+                #since secrets are ready-only in kubernetes, put the files in tmp location then copy thes files and replace environments
+                command: ['sh', '-c', 'cp /copy/* /usr/share/elasticsearch/plugins/opendistro_security/securityconfig/; sed  -i  -e  "s|\${ES_ADMIN_PWD}|$ES_ADMIN_PWD|g" -e  "s|\${ES_KIBANA_PWD}|$ES_KIBANA_PWD|g"  /usr/share/elasticsearch/plugins/opendistro_security/securityconfig/internal_users.yml']
+
       volumes:
       - name: config
         secret:
@@ -237,6 +245,8 @@ spec:
       {{- end }}
       {{- if .Values.elasticsearch.securityConfig.config }}
       - name: security-config
+        emptyDir: {}
+      - name: copy
         secret:
           secretName: {{ template "opendistro-es.fullname" . }}-es-config-secrets
       {{- end }}
