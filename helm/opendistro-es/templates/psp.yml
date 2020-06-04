@@ -21,6 +21,8 @@ metadata:
   name: {{ template "opendistro-es.fullname" . }}-psp
 spec:
   privileged: true
+  allowedCapabilities:
+    - 'SYS_CHROOT'
   #requiredDropCapabilities:
   volumes:
     - 'configMap'
