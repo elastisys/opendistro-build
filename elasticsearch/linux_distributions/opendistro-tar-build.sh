@@ -19,6 +19,7 @@ set -e
 ROOT=`pwd`
 ES_VERSION=$(../bin/version-info --es)
 OD_VERSION=$(../bin/version-info --od)
+<<<<<<< HEAD
 ARTIFACTS_URL="https://d3g5vo6xdbdb9a.cloudfront.net"
 PACKAGE_NAME="opendistroforelasticsearch"
 TARGET_DIR="$ROOT/target"
@@ -65,6 +66,17 @@ cp -v opendistro-tar-install.sh $PACKAGE_NAME-$OD_VERSION
 
 # Install Plugin
 for plugin_path in $PLUGINS
+=======
+OD_PLUGINVERSION=$OD_VERSION.0
+PACKAGE=opendistroforelasticsearch
+ROOT=$(dirname "$0")
+wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-oss-$ES_VERSION-linux-x86_64.tar.gz
+#Untar
+tar -xzf elasticsearch-oss-$ES_VERSION-linux-x86_64.tar.gz 
+rm -rf elasticsearch-oss-$ES_VERSION-linux-x86_64.tar.gz
+#Install Plugin
+for plugin_path in opendistro-sql/opendistro_sql-$OD_PLUGINVERSION.zip opendistro-alerting/opendistro_alerting-$OD_PLUGINVERSION.zip opendistro-job-scheduler/opendistro-job-scheduler-$OD_PLUGINVERSION.zip opendistro-security/opendistro_security-$OD_PLUGINVERSION.zip performance-analyzer/opendistro_performance_analyzer-$OD_PLUGINVERSION.zip opendistro-index-management/opendistro_index_management-$OD_PLUGINVERSION.zip opendistro-knn/opendistro-knn-$OD_PLUGINVERSION.zip opendistro-anomaly-detection/opendistro-anomaly-detection-$OD_PLUGINVERSION.zip;
+>>>>>>> master
 do
   plugin_latest=`aws s3api list-objects --bucket artifacts.opendistroforelasticsearch.amazon.com --prefix "downloads/elasticsearch-plugins/${plugin_path}" --query 'Contents[].[Key]' --output text | sort | tail -n 1`
   echo "installing $plugin_latest"
@@ -73,6 +85,7 @@ done
 
 # Validation
 echo "validating that plugins has been installed"
+<<<<<<< HEAD
 ls -lrt $basedir
 
 for d in $PLUGINS_CHECKS; do
@@ -83,6 +96,18 @@ for d in $PLUGINS_CHECKS; do
     echo "ERROR: "$d" is not present"
     exit 1;
   fi
+=======
+basedir=$PWD/$PACKAGE-$OD_VERSION/plugins
+arr=("$basedir/opendistro-job-scheduler" "$basedir/opendistro_alerting" "$basedir/opendistro_performance_analyzer" "$basedir/opendistro_security" "$basedir/opendistro_sql" "$basedir/opendistro_index_management" "$basedir/opendistro-knn" "$basedir/opendistro-anomaly-detection")
+for d in "${arr[@]}"; do
+    echo "$d" 
+    if [ -d "$d" ]; then
+        echo "directoy "$d" is present"
+    else
+        echo "ERROR: "$d" is not present"
+        exit 1;
+    fi
+>>>>>>> master
 done
 
 echo "Results: validated that plugins has been installed"
