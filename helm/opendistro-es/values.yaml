@@ -43,7 +43,7 @@ certmanager:
 kibana:
   enabled: true
   image: amazon/opendistro-for-elasticsearch-kibana
-  imageTag: 1.7.0
+  imageTag: 1.8.0
   replicas: 1
   port: 5601
   externalPort: 443
@@ -199,6 +199,11 @@ elasticsearch:
   initContainer:
     image: busybox
     imageTag: 1.27.2
+
+  ## Set optimal sysctl's. This requires privilege. Can be disabled if
+  ## the system has already been preconfigured.
+  sysctl:
+    enabled: true
 
   ssl:
     ## TLS is mandatory for the transport layer and can not be disabled
@@ -494,7 +499,7 @@ elasticsearch:
   maxMapCount: 262144
 
   image: amazon/opendistro-for-elasticsearch
-  imageTag: 1.7.0
+  imageTag: 1.8.0
   ## Specifies the image pull policy. Can be "Always" or "IfNotPresent" or "Never".
   ## Default to "Always".
   imagePullPolicy: ""
