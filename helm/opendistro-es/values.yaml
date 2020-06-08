@@ -173,15 +173,12 @@ elasticsearch:
       # roles.yml: |-
       # rolesMapping.yml: |-
       # tenants.yml: |-
-<<<<<<< HEAD
 
   s3:
     enabled: false
     useExistingSecret: true
     accessKey:
     secretKey:
-=======
->>>>>>> Allow security secret configurations in values.yaml
 
   extraEnvs: []
 
