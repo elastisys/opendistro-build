@@ -1,4 +1,4 @@
-7:
+9:
   action: delete_indices
   description: "Clean up the oldest postgresql-* indices that exceeds total disk space {{ .Values.curator.retention.postgresql_gb }} GB"
   options:
@@ -15,7 +15,7 @@
     source: creation_date
   - filtertype: kibana
     exclude: True
-8:
+10:
   action: delete_indices
   description: "Clean up the postgresql-* indices that are older then {{ .Values.curator.retention.postgresql_days }} days"
   options:

@@ -156,7 +156,7 @@ init_indices() {
   echo
   echo "Creating initial indices"
 
-  for idx in other kubernetes kubeaudit; do
+  for idx in other kubernetes kubeaudit authlog; do
     indices=$(curl -X GET "${es_url}/_cat/aliases/${idx}" \
       -k -s -u "${auth}")
     if echo "${indices}" | grep "true" > /dev/null; then # idx exists
