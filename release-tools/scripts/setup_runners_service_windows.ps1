@@ -7,13 +7,13 @@
 #
 # About:         Setup ES/KIBANA for integTests on Windows based ODFE distros w/wo Security
 #
-# Usage:         ./setup_runners_service_windows.ps1 $SETUP_ACTION
+# Usage:         ./setup_runners_service_windows.ps1 $SETUP_ACTION $OD_VERSION $ARCH
 #                $SETUP_ACTION: --es | --es-nosec | --kibana | --kibana-nosec (required)
+#                $OD_VERSION: 1.x.x | 1.12.0 (required)
+#                $ARCH: x64 | arm64 (optional defaults to x64)
 #
 # Requirements:  This script assumes java 14 is already installed on the servers
 #
-# Starting Date: 2020-07-27
-# Modified Date: 2020-08-02
 ###############################################################################################
 
 # Keep the pwsh script running even with errors
@@ -22,14 +22,22 @@
 
 # setup user parameters
 $SETUP_ACTION=$args[0]
-if (!$SETUP_ACTION) {
-  echo "Please enter 1 parameter: --es | --es-nosec | --kibana | --kibana-nosec"
+$OD_VERSION=$args[1]
+$ARCH="x64"
+if ($args[2]){
+  $ARCH=$args[2]
+}
+echo ARCHITECTURE: $ARCH
+if (!$SETUP_ACTION -or !$OD_VERSION) {
+  echo "Please enter 2 parameters: --es | --es-nosec | --kibana | --kibana-nosec 1.x.x ARCH (optional defaults to x64)"
+  echo "Example: $0 --es-nosec 1.12.0"
+  echo "Example: $0 --es 1.12.0 arm64"
   exit 1
 }
 
 echo "############################################################"
 echo "Setup ES/KIBANA to start with YES/NO security configurations"
-echo "User enters $SETUP_ACTION"
+echo "User enters $SETUP_ACTION $OD_VERSION $ARCH"
 echo "############################################################"
 
 echo "setup es"
@@ -39,15 +47,14 @@ python -m pip install --upgrade pip
 echo pip3 -version
 pip3 install awscli
 $PACKAGE="opendistroforelasticsearch"
-$OD_VERSION=$(python ./bin/version-info --od)
-$S3_PACKAGE="odfe-"+$OD_VERSION+".zip"
+$S3_PACKAGE="opendistroforelasticsearch-$OD_VERSION-windows-$ARCH.zip"
 dir
 
 ###############################################################
 
 # everyone needs es
 echo "downloading zip from S3"
-aws s3 cp s3://artifacts.opendistroforelasticsearch.amazon.com/downloads/odfe-windows/staging/odfe-window-zip/$S3_PACKAGE . --quiet; echo $?\
+aws s3 cp s3://staging.artifacts.opendistroforelasticsearch.amazon.com/releases/$OD_VERSION/odfe/$S3_PACKAGE . --quiet; echo $?\
 echo "unzipping $S3_PACKAGE"
 unzip -qq .\$S3_PACKAGE
 
@@ -63,10 +70,8 @@ if ($SETUP_ACTION -eq "--es"){
 
   echo "Waiting for 160 seconds"
   ping -n 160 127.0.0.1 >.\out.txt
-  #curl -XGET https://localhost:9200 -u admin:admin --insecure
-  #curl -XGET https://localhost:9200/_cluster/health?pretty -u admin:admin --insecure
 
-  echo "es start"
+  echo "es started"
   exit 0
 }
 
@@ -81,7 +86,7 @@ if ($SETUP_ACTION -eq "--es-nosec" -Or $SETUP_ACTION -eq "--kibana-nosec"){
 
   echo "Overriding with elasticsearch.yml having no certificates"
   del .\$PACKAGE-$OD_VERSION\config\elasticsearch.yml
-  aws s3 cp s3://artifacts.opendistroforelasticsearch.amazon.com/downloads/utils/elasticsearch.yml .\$PACKAGE-$OD_VERSION\config --quiet; echo $?
+  aws s3 cp s3://staging.artifacts.opendistroforelasticsearch.amazon.com/repos/utils/elasticsearch.yml .\$PACKAGE-$OD_VERSION\config --quiet; echo $?
   mkdir .\$PACKAGE-$OD_VERSION\snapshots
   echo "path.repo: [\"$PACKAGE-$OD_VERSION\snapshots\"]" >> .\$PACKAGE-$OD_VERSION\config\elasticsearch.yml
 }
@@ -92,10 +97,8 @@ if ($SETUP_ACTION -eq "--es-nosec"){
 
   echo "Waiting for 160 seconds"
   ping -n 160 127.0.0.1 >.\out.txt
-  #curl -XGET http://localhost:9200
-  #curl -XGET http://localhost:9200/_cluster/health?pretty
 
-  echo "es-nosec start"
+  echo "es-nosec started"
   exit 0
 }
 
@@ -106,8 +109,8 @@ if ($SETUP_ACTION -eq "--kibana" -Or $SETUP_ACTION -eq "--kibana-nosec"){
   echo "setup kibana"
   mkdir kibana-it-test
   cd kibana-it-test
-  $S3_KIBANA_PACKAGE="odfe-"+$OD_VERSION+"-kibana.zip"
-  aws s3 cp --quiet s3://artifacts.opendistroforelasticsearch.amazon.com/downloads/odfe-windows/staging/odfe-window-zip/$S3_KIBANA_PACKAGE . --quiet; echo $?\
+  $S3_KIBANA_PACKAGE="opendistroforelasticsearch-kibana-$OD_VERSION-windows-$ARCH.zip"
+  aws s3 cp --quiet s3://staging.artifacts.opendistroforelasticsearch.amazon.com/releases/$OD_VERSION/odfe/$S3_KIBANA_PACKAGE . --quiet; echo $?\
   unzip -qq .\$S3_KIBANA_PACKAGE
 }
 
@@ -115,6 +118,7 @@ if ($SETUP_ACTION -eq "--kibana"){
   cd ..
 
   echo "running es"
+  echo "opendistro_security.unsupported.restapi.allow_securityconfig_modification: true" >> .\$PACKAGE-$OD_VERSION\config\elasticsearch.yml
   nohup .\$PACKAGE-$OD_VERSION\bin\elasticsearch.bat &
 
   echo "running kibana"
@@ -124,12 +128,8 @@ if ($SETUP_ACTION -eq "--kibana"){
 
   echo "Waiting for 160 seconds"
   ping -n 160 127.0.0.1 >.\out.txt
-  #curl -XGET https://localhost:9200 -u admin:admin --insecure
-  #curl -XGET https://localhost:9200/_cluster/health?pretty -u admin:admin --insecure
-  #curl -v -XGET https://localhost:5601 --insecure
-  #curl -v -XGET https://localhost:5601/api/status --insecure
 
-  echo "kibana start"
+  echo "kibana started"
   exit 0
 }
 
@@ -141,11 +141,12 @@ if ($SETUP_ACTION -eq "--kibana-nosec"){
   cd opendistroforelasticsearch-kibana
   .\bin\kibana-plugin.bat remove opendistroSecurityKibana
   del .\config\kibana.yml
-  aws s3 cp s3://artifacts.opendistroforelasticsearch.amazon.com/downloads/utils/kibana-config-without-security/kibana.yml .\config --quiet; echo $?
+  aws s3 cp s3://staging.artifacts.opendistroforelasticsearch.amazon.com/repos/utils/kibana-config-without-security/kibana.yml .\config --quiet; echo $?
 
   cd ..\..
 
   echo "running es"
+  dir .\$PACKAGE-$OD_VERSION\plugins
   nohup .\$PACKAGE-$OD_VERSION\bin\elasticsearch.bat &
 
   echo "running kibana"
@@ -155,12 +156,8 @@ if ($SETUP_ACTION -eq "--kibana-nosec"){
 
   echo "Waiting for 160 seconds"
   ping -n 160 127.0.0.1 >.\out.txt
-  #curl -XGET http://localhost:9200
-  #curl -XGET http://localhost:9200/_cluster/health?pretty
-  #curl -v -XGET http://localhost:5601
-  #curl -v -XGET http://localhost:5601/api/status
 
-  echo "kibana-nosec start"
+  echo "kibana-nosec started"
   exit 0
 }
 
