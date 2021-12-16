@@ -8,9 +8,9 @@ metadata:
 {{ include "opendistro-es.labels.standard" . | indent 4 }}
 data:
   action_file.yml: |-
+    actions:
     {{- $c := 1 | int }}
     {{- range $k, $v := .Values.curator.retention }}
-    actions:
       {{ $c }}:
         action: delete_indices
         description: "Delete oldest {{ $v.pattern }} indices that exceeds total disk size {{ $v.sizeGB }}GB"
